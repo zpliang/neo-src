@@ -1,10 +1,13 @@
 // mjdyd.cpp
+#include "../include/testinclude.h"
 
 double yd2mjd(int yr, int doy){
-	double jd;
+	double djm0,mjd1;
 	if(yr<100)yr+=2000;//10.23
-	jday(yr, 1, 1, 0, 0, 0.0, jd);//printf("yd2mjd yr=%d,jd=%lf\n",yr,jd);
-	double mjd = jd -Jd2Mjd + doy -1;
+    iauCal2jd(yr,1,1,&djm0, &mjd1);
+    // jday(yr, 1, 1, 0, 0, 0.0, jd);  
+	double mjd = mjd1 + doy -1;
+    // printf("yd2mjd yr=%d,mjd=%lf\n",yr,mjd);
 	return(mjd);
 }
 int mjd2yd(const double mjd, int &yr, int &doy){
