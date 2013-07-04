@@ -1,0 +1,6 @@
+Exception: STATUS_ACCESS_VIOLATION at eip=30343038
+eax=37373435 ebx=36353637 ecx=00000000 edx=00000000 esi=37353138 edi=37323636
+ebp=31353137 esp=0028AC60 program=D:\Laboratory\CPF2tb\_ws-cxx\neo-src\a.exe, pid 5192, thread main
+cs=0023 ds=002B es=002B fs=0053 gs=002B ss=002B
+Stack trace:
+Frame     Function  Args

@@ -24,7 +24,12 @@ int main (void) {
 /////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////
-
+int sod_to_hms(double sod, int &h, int &m, int &s);
+    int ih, imin, is;
+    double sod;
+    sod=86400;
+    sod_to_hms(sod,ih,imin,is);
+    printf("sod=%f => %02d:%02d:%02d \n",sod,ih,imin,is);
 
 
 

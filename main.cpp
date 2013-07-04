@@ -1,12 +1,12 @@
 // purpose: convert CPF file to tb(SLR guidance) file. 
 
-// first we convert CPF file to TEF format (time, x, y, z)
+// [*] first we convert CPF file to TEF format (time, x, y, z)
 
-// then we convert TEF format to SLF(station-centered frame) (time, az, el, rg)
+// [*] then we convert TEF format to SLF(station-centered frame) (time, az, el, rg)
 
-// last, add atmospheric compensation.
+// [*] last, add atmospheric compensation.
 
-// usage: [==] 
+// usage: [==] <cpf name> <station file> <begin mjd> <day span>
 
 #include "include/testinclude.h"
 
@@ -34,89 +34,167 @@ int interp_mabc_vvv(const double mjdA[], const unsigned int len,
 int interp_mabc_vb(const mpf_class mp, const T_ARRAY &Amabc, const unsigned n, mpf_class m7des[]);
 int interp_mabc_vvvb(const mpf_class mjdA[], const unsigned int len,
 			const T_ARRAY &Amabc, const unsigned n, T_ARRAY &dAmxyz );
-
             
+int write_tb_line_1(const double fmjd, const double sod, const double rae[], char* tbline);
+
 int main (int argc, char** argv) {
 int err=0;
 	unsigned long nCpf;
 	unsigned long len;
-	unsigned long i;
-	char cpfname[50]="../data/ajMar1_7.hts";
-	mpf_class  MjdBegin, MjdEnd, Freq, dtmjd, zp;
+	unsigned long i,j;
+	double prmt[14]={0,0,0,0,0,0,0,0,0,0,0,0,0,0};	//for(i=0;i<14;++i)prmt[i]=0.0;
+	char cpfname[100]="./ajMar1_7.hts";
+    char stfname[100]="./chan7237.txt";    
+	char m2str[10], sdump[50], tbline[100];
+	mpf_class  MjdBegin, MjdEnd, Freq, Span, dtmjd, zp;
 	mpf_class *MjdSeries; 
 	
 //---------argument parser---------------	
-	if(argc>1){
-		strncpy(cpfname,argv[1],50);	
+	if(argc>2){
+		strncpy(cpfname,argv[1],99);
+        strncpy(stfname,argv[2],99);
 	}//default has been set. 
-	if(argc>2) gmp_sscanf(argv[2],"%Ff",&MjdBegin);
-	else MjdBegin = 55256.0;
-	if(argc>3) gmp_sscanf(argv[3],"%Ff",&Freq);
-	else Freq = 1440;
-	if(argc>4) gmp_sscanf(argv[4],"%Ff",&MjdEnd);
-	else MjdEnd = 55262.0;
+	if(argc>3) gmp_sscanf(argv[3],"%Ff",&MjdBegin);
+	else MjdBegin = 55256.0;// use mjd0!
+	if(argc>4) gmp_sscanf(argv[4],"%Ff",&Span);
+	else Span = 1;
+
 
 
 //---------------Class objects---------
+    Freq=86400;
 	dtmjd=1.0/Freq;
 	nCpf=5000;// for Ajisai, 360 lines/day.
-	zp=((MjdEnd-MjdBegin)*Freq  +1 ); len = zp.get_si();// reserve output budget
+	zp=(Span*Freq  +1 ); len = zp.get_si();// reserve output budget
 	MjdSeries = new mpf_class[len];
-	
+
 	CFile3 cpffile(cpfname,nCpf);// parse file
 	CArray2 Amxyz(nCpf);
 	CPF2Amxyz(cpffile, Amxyz);//conversion
 	CArray2 ATefSeries(len+500);  //allocate
-
+	CFile3 datfile(stfname, 30); // station info
+	read_sta_dat_1(datfile, prmt, m2str);	
 //---------------print TEF coordinate from CPF--------	
 	for(i=0;i<len;i++) MjdSeries[i] = MjdBegin + i*dtmjd; 
 
 	interp_mabc_vvvb(MjdSeries, len, Amxyz, 5, ATefSeries );// Interpolate 
-	ATefSeries.print();//Array offers print function.
+//	ATefSeries.print();//Array offers print function.
+// now we have ATefSeries.
 
-    
-    
-    
-/////////////////////////// test 1 /////////////////////
-    int iy, im, id, j;
+
+
+
+// /////////////////////////// test 1 /////////////////////
+    int iy, im, id, jerr;
     double d1, d2, fd;
     iy=2013;
     im=7;
     id=1;
     // printf("%4d/%2.2d/%2.2d\n",iy,im,id);
-    j=iauCal2jd(iy, im, id, &d1, &d2); //d2 is mjd
-    // printf ( "%9.1f +%13.6f =%15.6f\n", d1, d2, d1 + d2 );
-    j=mjd2yd(d2,iy,id);
-    // printf ( "year is %4d, doy is %3d \n",iy,id);
-    j=iauJd2cal(d1,d2,&iy,&im,&id,&fd);
-    // printf ( "mjd=%8f => %4d/%02d/%02d    %4.4f\n", d2, iy,im,id,fd);
-    d2=yd2mjd(2013,182);
-    // printf ( "mjd=%8f \n",d2);
-/////////////////////////////////////////////////////////////
+    jerr=iauCal2jd(iy, im, id, &d1, &d2); //d2 is mjd
+    // // printf ( "%9.1f +%13.6f =%15.6f\n", d1, d2, d1 + d2 );
+    // j=mjd2yd(d2,iy,id);
+    // // printf ( "year is %4d, doy is %3d \n",iy,id);
+    // j=iauJd2cal(d1,d2,&iy,&im,&id,&fd);
+    // // printf ( "mjd=%8f => %4d/%02d/%02d    %4.4f\n", d2, iy,im,id,fd);
+    // d2=yd2mjd(2013,182);
+    // // printf ( "mjd=%8f \n",d2);
+// /////////////////////////////////////////////////////////
     
     
+/////////////////////////////////////////TEF to tb line////////////////////////
+	char inputstr[500];
+	// int i;
+	double tefpos[4], tefvel[3], mrae[4];
+	double ElMin=5.0;
+	// double satid=8606101.0;
+	// double RngErr=0.0;
+	double sod;
+	
+	// printf("argument:%s\n",argv[1]);
+	//---------argument parser---------------	
+	// if(argc>4){
+		// sscanf(argv[1],"%lf",&satid);//if(argv[1][0]=='-' && argv[1][1]=='s')
+		// strncpy(datname,argv[2],99);
+		// sscanf(argv[3],"%lf",&ElMin);
+		// sscanf(argv[4],"%lf",&RngErr);
+	// }
+	// else;//default has been set. 
+	
+
+	
+    // ----------Loop through ATefSeries ----------------
+    for (i=0;i<ATefSeries.nRecNum;i++){
+        for (j=0;j<7;j++) tefpos[j]=ATefSeries.body[i].p[j];    //copy from array.
+        mxyz2mobs(tefpos,prmt,mrae);// convert to rae. R in seconds.
+		if(mrae[3]>ElMin*M_deg2rad){ // elevation threshold
+            sod = floor(0.5+(mrae[0]-floor(mrae[0]))*86400.0);
+            write_tb_line_1(mrae[0],sod, mrae+1,tbline);
+			printf("%s\n",tbline);//direct output
+		}
+    }
     
+	// do{// read streamed input: four doubles.
+		// if(fgets(inputstr,500,stdin) == NULL) break;
+		// sscanf(inputstr,"%lf %lf %lf %lf", // %lf %lf %lf", 
+			// &tefpos[0], &tefpos[1], &tefpos[2], &tefpos[3]);//, &tefvel[0], &tefvel[1], &tefvel[2]);
+		// if(tefpos[0]<=0.0) break;	
+		// mxyz2mobs(tefpos,prmt,mrae);// convert to rae. R in seconds.
+		// if(mrae[3]>ElMin*M_deg2rad){ // elevation threshold
+			// // mrae[1]+=range_perturb_701(RngErr, mrae[0]);
+			// // rounded seconds. a shortcut, for integer seconds only! 
+			// sod = floor(0.5+(mrae[0]-floor(mrae[0]))*86400.0);
+			// // write_merit_II_2(mrae[0]+2400000.5,sod,mrae+1,satid,m2str,sdump,m2line); // convert to meritII line
+            // write_tb_line_1(mrae[0],sod, mrae+1,tbline);
+			// printf("%s\n",tbline);//direct output
+		// }
+	// }while(tefpos[0]>0.0);    
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+////////////////////////////////////////    
 delete [] MjdSeries;
 
 return(err);
 }
 
 
-int write_tb_line_1(const double fmjd, const double sod, const double rae[], const double satid, string tbline);
+int write_tb_line_1(const double fmjd, const double sod, const double rae[], char* tbline);
 
-
-
+/*
+ T(H:M:S)     AZ(D)      ELV(D)   RANGE(NS)       US         H'          A'       Rate
+  8:44:26    35.4522     5.0127    17017243.8    17017.24   5: 0:45    35:27: 8 -5.442775
+[sod to hms] [az deg]   [el deg] [range m2ns]    [x 1000]  [deci to sexa] [..]   ["-0.0"]
+*/
+int write_tb_line_1(const double fmjd, const double sod, const double rae[], char tbline[]){
+int err=0;    
+    int ihr, imin, isec;
+    int iAz_dmsf[4],iEl_dmsf[4];
+    double AzDeg,ElDeg,AzRad,ElRad,Rg_ns,Rg_Us,RgRate;
+    char AzSign,ElSign;
+    
+    AzRad=rae[1];
+    ElRad=rae[2];
+    
+    // calculate required values.
+    err+=sod_to_hms(sod, ihr,imin,isec);
+    AzDeg=AzRad*M_rad2deg;
+    ElDeg=ElRad*M_rad2deg;
+    Rg_ns=rae[0]*1.0e3;
+    Rg_Us=rae[0];   // mxyz2mobs gives 2way Us.
+    iauA2af(0,ElRad,&ElSign,iEl_dmsf);
+    iauA2af(0,AzRad,&AzSign,iAz_dmsf);
+    RgRate=-0.0;
+    
+    // print values.
+    sprintf(tbline," %02d:%02d:%02d %10.4lf %10.4lf %13.1lf %11.2lf  %02d:%02d:%02d   %03d:%02d:%02d %9.5f",
+                     ihr,imin,isec, AzDeg,  ElDeg,
+                                                    Rg_ns, Rg_Us,   iEl_dmsf[0],iEl_dmsf[1],iEl_dmsf[2],
+                                                                                      iAz_dmsf[0],iAz_dmsf[1],iAz_dmsf[2],
+                                                                                                     RgRate
+                                                                );
+    
+    
+return(err);    
+}
 int interp_mabc_vb(const mpf_class mp, const T_ARRAY &Amabc, const unsigned n, mpf_class m7des[]){// debugging
 // Interpolate from sample array($Amabc) against $mjdp.
 // $m7[] stores result.

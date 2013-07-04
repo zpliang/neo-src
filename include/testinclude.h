@@ -22,6 +22,9 @@ int double_vec_subtract(double vec1[], const double vec2[], const double vec3[],
 
 //#include "common-constant.h"
 #define Mpi		3.141592653589793
+#define M_invSpeedOfLight	3.33564095e-3	// 1 / 299.792458 mUs*m-1
+#define M_rad2deg		57.2957795		// 180 deg /pi rad
+#define M_deg2rad		0.017453292519943 // pi/180.0;
 
 
 #include "../src/Rec3.h"
@@ -31,6 +34,12 @@ int double_vec_subtract(double vec1[], const double vec2[], const double vec3[],
 //#include "filerw.h"
 typedef CArray2 T_ARRAY;
 int CPF2Amxyz(const CFile3 &cpffile,  T_ARRAY &Amxyz);
+int read_sta_dat_1(const CFile3 &datfile, double prmt[], char m2s[]);
+int mxyz2mobs(const double mxyz[], const double pm[], double mrae[]);
+
+
+// sod_to_hms.cpp
+int sod_to_hms(double sod, int &h, int &m, int &s);
 
 #endif
 

@@ -1,0 +1,11 @@
+# a is station vector in TEF. meter.
+a -2674377.0, 3757198.0, 4391503.0
+# b is station coordinate in longitude, latitude and altitude
+b 125.4433, 43.7905, 268.3
+# c is meteor parameter
+c 979.3, 293.90, 0.820
+#	d is EOP file name.
+# e is station string
+e 72371901
+# a leading z ends the file
+z 
