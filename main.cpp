@@ -46,6 +46,7 @@ int err=0;
 	char cpfname[100]="./ajMar1_7.hts";
     char stfname[100]="./chan7237.txt";    
 	char m2str[10], sdump[50], tbline[100];
+    bool bGap=1;
 	mpf_class  MjdBegin, MjdEnd, Freq, Span, dtmjd, zp;
 	mpf_class *MjdSeries; 
 	
@@ -128,10 +129,15 @@ int err=0;
         for (j=0;j<7;j++) tefpos[j]=ATefSeries.body[i].p[j];    //copy from array.
         mxyz2mobs(tefpos,prmt,mrae);// convert to rae. R in seconds.
 		if(mrae[3]>ElMin*M_deg2rad){ // elevation threshold
+            if (bGap==1) {bGap=0;printf("#T(H:M:S)     AZ(D)      ELV(D)   RANGE(NS)       US         H'          A'       Rate[X]\n");} 
+            //when transition, do: print header.
             sod = floor(0.5+(mrae[0]-floor(mrae[0]))*86400.0);
             write_tb_line_1(mrae[0],sod, mrae+1,tbline);
 			printf("%s\n",tbline);//direct output
 		}
+        else { // now is gap time!
+            if (bGap==0) {bGap=1;printf("\n");} //when transition, do: insert gap mark.
+        }
     }
     
 	// do{// read streamed input: four doubles.
