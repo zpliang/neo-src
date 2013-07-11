@@ -129,7 +129,13 @@ int err=0;
         for (j=0;j<7;j++) tefpos[j]=ATefSeries.body[i].p[j];    //copy from array.
         mxyz2mobs(tefpos,prmt,mrae);// convert to rae. R in seconds.
 		if(mrae[3]>ElMin*M_deg2rad){ // elevation threshold
-            if (bGap==1) {bGap=0;printf("#T(H:M:S)     AZ(D)      ELV(D)   RANGE(NS)       US         H'          A'       Rate[X]\n");} 
+            if (bGap==1) {
+                bGap=0;
+                printf("#T(H:M:S)     AZ(D)      ELV(D)   RANGE(NS)       US         H'          A'       Rate[X]\n");
+                d2=mrae[0];
+                iauJd2cal(d1,d2,&iy,&im,&id,&fd);
+                printf("## tb%02d%02d%02d\n",im,id,int(fd*24));
+            } 
             //when transition, do: print header.
             sod = floor(0.5+(mrae[0]-floor(mrae[0]))*86400.0);
             write_tb_line_1(mrae[0],sod, mrae+1,tbline);

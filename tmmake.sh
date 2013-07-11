@@ -8,4 +8,4 @@ ld -r ${myobjlist} -o myfunlib.o
 
 g++ -g main.cpp libsofa_c.a myfunlib.o  -lgmp
 
-./a CPF10chunk_LARETS.txt chan7237dat.txt 56383 1 > out.tmp
+./a CPF10chunk_LARETS.txt chan7237dat.txt 56383 2 > out.tmp
